@@ -1,0 +1,69 @@
+{
+	# Disable manual ACME/HTTPS management. DSM nginx does not advertise Alt-Svc,
+	# so we never emit it (fingerprint match).
+	# H1/H2 only, no HTTP/3.
+	servers {
+		protocols h1 h2
+	}
+	# Global (runtime) events to stderr.
+	log {
+		output stderr
+		level INFO
+	}
+}
+
+:5001 {
+	tls cert.pem key.pem
+
+	# Access log to stdout: real client IP + method + URI + status + duration.
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+
+	# ---- DSM nginx fingerprint headers ----
+	header Server "nginx"
+	header {
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		-Alt-Svc
+	}
+
+	# ---- pingpong === synorelayd writes an nginx location for QuickConnect ----
+	# Exactly reproduces DSM nginx:
+	#   location ~ ^/webman/pingpong.cgi  where $arg_quickconnect is set -> 200 JSON
+	# The ezid is the md5() of your QuickConnect serverID, lowercase hex.
+	#   e.g.:  echo -n '123456789' | md5sum
+	@pingpong {
+		path /webman/pingpong.cgi
+		query quickconnect=*
+	}
+	handle @pingpong {
+		header Access-Control-Allow-Origin *
+		header Content-Type "text/plain; charset=utf-8"
+		# >>> replace with md5 of YOUR QuickConnect ID <<<
+		respond `{"success": true,"ezid": "00000000000000000000000000000000"}` 200
+	}
+	# without the quickconnect argument: fall through to the 401 fallback
+	handle /webman/pingpong.cgi {
+		respond "Unauthorized" 401
+	}
+
+	# ---- reverse proxy rule ----
+	# Rename the path prefix below to your own secret path, and point
+	# reverse_proxy at your own upstream (TEST-NET-1 documentation IP).
+	@app path /app /app/*
+	handle @app {
+		reverse_proxy http://192.0.2.1:8080 {
+			header_up X-Real-IP {http.request.remote.host}
+		}
+	}
+
+	# ---- everything else: 401 + basic-auth prompt that always rejects ----
+	# This mirroring DSM behavior for unknown QuickConnect paths.
+	handle {
+		header WWW-Authenticate `Basic realm="Synology"`
+		respond "Unauthorized" 401
+	}
+}

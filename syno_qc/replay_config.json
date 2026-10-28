@@ -1,0 +1,62 @@
+{
+  "_note": [
+    "Fill in the 'auth' section with values from YOUR Synology NAS:",
+    "  key      <- 'key' line in /etc/application_key.conf (application key for QuickConnect)",
+    "  mac      <- get NAS MAC from DSM console label or 'ip link' on the NAS",
+    "  serial   <- DSM serial (dsm.serial in /etc/synoinfo.conf)",
+    "  serverID <- your QuickConnect ID (the number, e.g. 123456789)",
+    "  timezone <- timezone name as configured in DSM Control Panel",
+    "  token    <- login token the NAS-side synorelayd uses; sniff/CAPTURE it once",
+    "              (see README: LD_PRELOAD capture) and paste here as-is",
+    "Endpoint paths in caddy/Caddyfile must be renamed to your own secret paths.",
+    "ca_fingerprints are Synology's public relay-CA fingerprints (not secret)."
+  ],
+  "global_site": "https://global.quickconnect.to/Serv.php",
+  "user_agent": "synology_apollolake_918+ DSM6.2-25426 (Quickconnect)",
+  "auth": {
+    "key": "REPLACE_APPLICATION_KEY",
+    "mac": "00:11:32:00:00:00",
+    "model": "DS918+",
+    "serial": "REPLACE-NA-SERIAL-DISPLAY-NAME",
+    "serverID": "123456789",
+    "timezone": "Taipei",
+    "token": "REPLACE-AUTH-TOKEN"
+  },
+  "update_network": {
+    "ddns": "",
+    "fqdn": "",
+    "gateway": "192.168.1.1",
+    "interface": [
+      {
+        "ip": "192.168.1.10",
+        "ipv6": [
+          {"addr_type": 0, "address": "2001:db8:0:10:132ff:fea6:0000:1", "prefix_length": 64, "scope": "global"},
+          {"addr_type": 0, "address": "fd00::1:132ff:fea6:0000:1", "prefix_length": 64, "scope": "global"},
+          {"addr_type": 32, "address": "fe80::1:132ff:fea6:0000:1", "prefix_length": 64, "scope": "link"}
+        ],
+        "mask": "255.255.255.0",
+        "name": "eth0"
+      }
+    ],
+    "ipv6_tunnel": [],
+    "mode": "",
+    "version": 1
+  },
+  "services": [
+    {"id": "http", "port": 80},
+    {"id": "https", "port": 443},
+    {"id": "ssh", "port": 22},
+    {"id": "dsm_portal", "port": 5000},
+    {"id": "dsm_portal_https", "port": 5001}
+  ],
+  "ca_fingerprints": [
+    "100d262a1409b5b862606649a1d63a4c4dab59a0774290d5fa589b075e73e1db",
+    "5c088a41407b725e0c23bc6306ecc8d53df841094962e88e3331b2f4414cef9b"
+  ],
+  "upnp": {"whitelist": ["cloudstation"]},
+  "openvpn_bin": "/root/syno/openvpn-syno",
+  "ca_crt": "/root/syno/ca.crt",
+  "creds_file": "/tmp/replay.tunnel",
+  "tun_dev": "tun0",
+  "log_dir": "/tmp"
+}
